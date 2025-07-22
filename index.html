@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>คำนวณขนาดยาวัณโรค TB</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; }
+    label { display: block; margin-top: 10px; }
+    input, select { width: 100%; padding: 8px; margin-top: 4px; }
+    button { margin-top: 15px; padding: 10px; background-color: #4caf50; color: white; border: none; }
+    .result { margin-top: 20px; padding: 15px; background: #fff; border-radius: 8px; }
+    .alert { color: red; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>คำนวณขนาดยา TB และระบบเตือนอัตโนมัติ</h2>
+
+  <label>น้ำหนัก (kg):</label>
+  <input type="number" id="weight" placeholder="เช่น 60">
+
+  <label>อายุ (ปี):</label>
+  <input type="number" id="age" placeholder="เช่น 45">
+
+  <label>เพศ:</label>
+  <select id="sex">
+    <option value="male">ชาย</option>
+    <option value="female">หญิง</option>
+  </select>
+
+  <label>Serum Creatinine (mg/dL):</label>
+  <input type="number" id="scr" step="0.01" placeholder="เช่น 1.2">
+
+  <label>AST หรือ ALT (เท่าของค่าปกติ):</label>
+  <input type="number" id="liver" step="0.1" placeholder="เช่น 2.5">
+
+  <button onclick="calculateDose()">คำนวณและแนะนำ</button>
+  <button onclick="window.print()">🖨 พิมพ์รายงาน PDF</button>
+
+  <div class="result" id="result"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
