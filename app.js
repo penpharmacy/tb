@@ -12,7 +12,7 @@ const firebaseConfig = {
   measurementId: "G-Z27P0C9192"
 };
 
-const VAPID_KEY = "PASTE_YOUR_PUBLIC_VAPID_KEY_HERE";
+const VAPID_KEY = "BEW_OlIcEMACqhY8gvQJnED9MHFIT5e0Iyp6cOmVdu8LGQn6XwSplZJ-a2FsHJWJvwr5ouW2LdyYJ6P0yCviT3Y";
 
 // PWA: register service worker (FCM SW is sufficient for installability)
 if ('serviceWorker' in navigator) {
