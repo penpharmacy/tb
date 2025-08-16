@@ -21,6 +21,7 @@ const firebaseConfig = {
   measurementId: "G-Z27P0C9192"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const messaging = getMessaging(app);
@@ -29,7 +30,7 @@ let medications = [];
 const medListDiv = document.getElementById('medList');
 const historyTbody = document.querySelector('#historyTable tbody');
 
-// ขอสิทธิ์ Notification และรับ FCM Token
+// --- ขอสิทธิ์ Notification ---
 Notification.requestPermission().then((permission)=>{
   if(permission==='granted'){
     getToken(messaging, { vapidKey: 'BEW_OlIcEMACqhY8gvQJnED9MHFIT5e0Iyp6cOmVdu8LGQn6XwSplZJ-a2FsHJWJvwr5ouW2LdyYJ6P0yCviT3Y' })
@@ -53,13 +54,20 @@ function renderMedications(){
     div.innerHTML=`
       <input id="medName_${idx}" value="${med.name}">
       <input type="time" id="medTime_${idx}" value="${med.time}" step="60">
-      <button onclick="saveMedication(${idx})" class="save">บันทึก</button>
-      <button onclick="deleteMedication(${idx})" class="delete">ลบ</button>
-      <button onclick="markTaken('${med.name}', true)" class="taken">✅ กินยาแล้ว</button>
-      <button onclick="markTaken('${med.name}', false)" class="not-taken">❌ ไม่ได้กินยา</button>
+      <button id="save_${idx}" class="save">บันทึก</button>
+      <button id="delete_${idx}" class="delete">ลบ</button>
+      <button id="taken_${idx}" class="taken">✅ กินยาแล้ว</button>
+      <button id="notTaken_${idx}" class="not-taken">❌ ไม่ได้กินยา</button>
     `;
     medListDiv.appendChild(div);
+
+    // กำหนด event listener ให้ปุ่ม
+    document.getElementById(`save_${idx}`).addEventListener('click', ()=>saveMedication(idx));
+    document.getElementById(`delete_${idx}`).addEventListener('click', ()=>deleteMedication(idx));
+    document.getElementById(`taken_${idx}`).addEventListener('click', ()=>markTaken(med.name, true));
+    document.getElementById(`notTaken_${idx}`).addEventListener('click', ()=>markTaken(med.name, false));
   });
+
   scheduleAllNotifications();
 }
 
@@ -74,6 +82,7 @@ function addMedication(){
   renderMedications();
   saveMedicationsToFirebase();
 }
+window.addMedication = addMedication;
 
 function saveMedication(idx){
   const name = document.getElementById(`medName_${idx}`).value.trim();
@@ -84,12 +93,14 @@ function saveMedication(idx){
   renderMedications();
   saveMedicationsToFirebase();
 }
+window.saveMedication = saveMedication;
 
 function deleteMedication(idx){
   medications.splice(idx,1);
   renderMedications();
   saveMedicationsToFirebase();
 }
+window.deleteMedication = deleteMedication;
 
 function markTaken(medName, taken){
   const today = new Date().toLocaleDateString('th-TH');
@@ -98,23 +109,26 @@ function markTaken(medName, taken){
   setDoc(doc(db,'medication_history',today), {
     [medName]: status,
     timestamp: new Date()
-  }, {merge:true}).then(()=>{
+  }, {merge:true})
+  .then(()=> {
     alert(`บันทึก ${medName} ${status} แล้ว`);
     loadHistory(true, medName);
   });
 }
+window.markTaken = markTaken;
 
 function loadHistory(flash=false, highlightMed=null){
   historyTbody.innerHTML='';
-  getDocs(query(collection(db,'medication_history'), orderBy('timestamp'))).then(snapshot=>{
+  const q = query(collection(db,'medication_history'), orderBy('timestamp'));
+  getDocs(q).then(snapshot=>{
     snapshot.forEach(docSnap=>{
-      const date = docSnap.id;
-      const data = docSnap.data();
+      const date=docSnap.id;
+      const data=docSnap.data();
       for(const med in data){
         if(med!=='timestamp'){
-          const tr = document.createElement('tr');
+          const tr=document.createElement('tr');
           const statusClass = data[med].includes('✅') ? 'status-taken' : 'status-not-taken';
-          tr.innerHTML = `<td>${date}</td><td>${med}</td><td class="${statusClass}">${data[med]}</td>`;
+          tr.innerHTML=`<td>${date}</td><td>${med}</td><td class="${statusClass}">${data[med]}</td>`;
           historyTbody.appendChild(tr);
 
           if(flash && med===highlightMed){
@@ -135,7 +149,7 @@ function saveMedicationsToFirebase(){
 function loadMedicationsFromFirebase(){
   getDoc(doc(db,'medications','list')).then(docSnap=>{
     if(docSnap.exists()){
-      medications = docSnap.data().medications || [];
+      medications=docSnap.data().medications||[];
       renderMedications();
     }
   });
@@ -154,23 +168,14 @@ function scheduleAllNotifications(){
     if(notifTime < thailandNow) notifTime.setDate(notifTime.getDate() + 1);
 
     const timeout = notifTime.getTime() - thailandNow.getTime();
-
     setTimeout(()=>{
-      new Notification('เวลากินยา',{
-        body:`โปรดรับประทาน ${med.name} เวลา ${med.time}`
-      });
+      new Notification('เวลากินยา', { body:`โปรดรับประทาน ${med.name} เวลา ${med.time}` });
       scheduleAllNotifications();
     }, timeout);
   });
 }
 
-// --- ทำให้ฟังก์ชันเข้าถึงจาก HTML ได้ ---
-window.addMedication = addMedication;
-window.saveMedication = saveMedication;
-window.deleteMedication = deleteMedication;
-window.markTaken = markTaken;
-
-// --- โหลดเริ่มต้น ---
+// โหลดเริ่มต้น
 loadMedicationsFromFirebase();
 loadHistory();
 </script>
@@ -194,4 +199,3 @@ loadHistory();
 </div>
 </body>
 </html>
-
