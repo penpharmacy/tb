@@ -10,6 +10,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebas
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-messaging.js";
 
+// --- Firebase Config ---
 const firebaseConfig = {
   apiKey: "AIzaSyBcINCCqaoBBbV4egcbQ2W422ttwFl-dhE",
   authDomain: "tbmedicationreminder.firebaseapp.com",
@@ -34,7 +35,7 @@ Notification.requestPermission().then((permission)=>{
     getToken(messaging, { vapidKey: 'BEW_OlIcEMACqhY8gvQJnED9MHFIT5e0Iyp6cOmVdu8LGQn6XwSplZJ-a2FsHJWJvwr5ouW2LdyYJ6P0yCviT3Y' })
     .then(token=>{
       console.log('FCM Token:', token);
-      // เก็บ token ลง Firebase (collection 'fcm_tokens')
+      // สามารถเก็บ token ลง Firebase collection 'fcm_tokens'
     });
   }
 });
@@ -43,6 +44,7 @@ onMessage(messaging, (payload)=>{
   alert(payload.notification.body);
 });
 
+// --- ฟังก์ชันหลัก ---
 function renderMedications(){
   medListDiv.innerHTML='';
   medications.forEach((med, idx)=>{
@@ -61,8 +63,116 @@ function renderMedications(){
   scheduleAllNotifications();
 }
 
-// ฟังก์ชันอื่นๆ: addMedication, saveMedication, deleteMedication, markTaken, loadHistory, saveMedicationsToFirebase, loadMedicationsFromFirebase, scheduleAllNotifications
-// --- โค้ดฟังก์ชันเต็มเหมือนตัวอย่างก่อนหน้า ---
+function addMedication(){
+  const name = document.getElementById('newMed').value.trim();
+  const time = document.getElementById('newMedTime').value;
+  if(!name || !time){ alert("กรอกชื่อยาและเวลาให้ครบ"); return; }
+
+  medications.push({name,time});
+  document.getElementById('newMed').value='';
+  document.getElementById('newMedTime').value='19:00';
+  renderMedications();
+  saveMedicationsToFirebase();
+}
+
+function saveMedication(idx){
+  const name = document.getElementById(`medName_${idx}`).value.trim();
+  const time = document.getElementById(`medTime_${idx}`).value;
+  if(!name || !time){ alert("กรอกชื่อยาและเวลาให้ครบ"); return; }
+
+  medications[idx]={name,time};
+  renderMedications();
+  saveMedicationsToFirebase();
+}
+
+function deleteMedication(idx){
+  medications.splice(idx,1);
+  renderMedications();
+  saveMedicationsToFirebase();
+}
+
+function markTaken(medName, taken){
+  const today = new Date().toLocaleDateString('th-TH');
+  const status = taken ? "✅ กินยาแล้ว" : "❌ ไม่ได้กินยา";
+
+  setDoc(doc(db,'medication_history',today), {
+    [medName]: status,
+    timestamp: new Date()
+  }, {merge:true}).then(()=>{
+    alert(`บันทึก ${medName} ${status} แล้ว`);
+    loadHistory(true, medName);
+  });
+}
+
+function loadHistory(flash=false, highlightMed=null){
+  historyTbody.innerHTML='';
+  getDocs(query(collection(db,'medication_history'), orderBy('timestamp'))).then(snapshot=>{
+    snapshot.forEach(docSnap=>{
+      const date = docSnap.id;
+      const data = docSnap.data();
+      for(const med in data){
+        if(med!=='timestamp'){
+          const tr = document.createElement('tr');
+          const statusClass = data[med].includes('✅') ? 'status-taken' : 'status-not-taken';
+          tr.innerHTML = `<td>${date}</td><td>${med}</td><td class="${statusClass}">${data[med]}</td>`;
+          historyTbody.appendChild(tr);
+
+          if(flash && med===highlightMed){
+            const tdStatus = tr.querySelector('td.status-taken, td.status-not-taken');
+            tdStatus.classList.add('flash');
+            setTimeout(()=> tdStatus.classList.remove('flash'), 800);
+          }
+        }
+      }
+    });
+  });
+}
+
+function saveMedicationsToFirebase(){
+  setDoc(doc(db,'medications','list'), {medications});
+}
+
+function loadMedicationsFromFirebase(){
+  getDoc(doc(db,'medications','list')).then(docSnap=>{
+    if(docSnap.exists()){
+      medications = docSnap.data().medications || [];
+      renderMedications();
+    }
+  });
+}
+
+function scheduleAllNotifications(){
+  if(Notification.permission!=='granted'){ Notification.requestPermission(); return; }
+  medications.forEach(med=>{
+    const [hour, minute] = med.time.split(':').map(Number);
+    const now = new Date();
+    const utcNow = now.getTime() + (now.getTimezoneOffset()*60000);
+    const thailandNow = new Date(utcNow + 7*3600000);
+
+    let notifTime = new Date(thailandNow);
+    notifTime.setHours(hour, minute, 0, 0);
+    if(notifTime < thailandNow) notifTime.setDate(notifTime.getDate() + 1);
+
+    const timeout = notifTime.getTime() - thailandNow.getTime();
+
+    setTimeout(()=>{
+      new Notification('เวลากินยา',{
+        body:`โปรดรับประทาน ${med.name} เวลา ${med.time}`
+      });
+      scheduleAllNotifications();
+    }, timeout);
+  });
+}
+
+// --- ทำให้ฟังก์ชันเข้าถึงจาก HTML ได้ ---
+window.addMedication = addMedication;
+window.saveMedication = saveMedication;
+window.deleteMedication = deleteMedication;
+window.markTaken = markTaken;
+
+// --- โหลดเริ่มต้น ---
+loadMedicationsFromFirebase();
+loadHistory();
 </script>
 </head>
 <body>
@@ -73,6 +183,7 @@ function renderMedications(){
 <input type="time" id="newMedTime" value="19:00" step="60">
 <button onclick="addMedication()" class="save">เพิ่มยา</button>
 <div id="medList"></div>
+
 <h2>ประวัติการกินยา</h2>
 <table id="historyTable">
 <thead>
@@ -83,3 +194,4 @@ function renderMedications(){
 </div>
 </body>
 </html>
+
