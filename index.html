@@ -1,45 +1,85 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <title>คำนวณขนาดยาวัณโรค TB</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="manifest.json">
-  <style>
-    body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; }
-    label { display: block; margin-top: 10px; }
-    input, select { width: 100%; padding: 8px; margin-top: 4px; }
-    button { margin-top: 15px; padding: 10px; background-color: #4caf50; color: white; border: none; }
-    .result { margin-top: 20px; padding: 15px; background: #fff; border-radius: 8px; }
-    .alert { color: red; font-weight: bold; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TB Medication Reminder</title>
+<link rel="stylesheet" href="style.css">
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-messaging.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBcINCCqaoBBbV4egcbQ2W422ttwFl-dhE",
+  authDomain: "tbmedicationreminder.firebaseapp.com",
+  projectId: "tbmedicationreminder",
+  storageBucket: "tbmedicationreminder.firebasestorage.app",
+  messagingSenderId: "658947281549",
+  appId: "1:658947281549:web:cb41c127f8b3174e83c8c4",
+  measurementId: "G-Z27P0C9192"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const messaging = getMessaging(app);
+
+let medications = [];
+const medListDiv = document.getElementById('medList');
+const historyTbody = document.querySelector('#historyTable tbody');
+
+// ขอสิทธิ์ Notification และรับ FCM Token
+Notification.requestPermission().then((permission)=>{
+  if(permission==='granted'){
+    getToken(messaging, { vapidKey: 'BEW_OlIcEMACqhY8gvQJnED9MHFIT5e0Iyp6cOmVdu8LGQn6XwSplZJ-a2FsHJWJvwr5ouW2LdyYJ6P0yCviT3Y' })
+    .then(token=>{
+      console.log('FCM Token:', token);
+      // เก็บ token ลง Firebase (collection 'fcm_tokens')
+    });
+  }
+});
+
+onMessage(messaging, (payload)=>{
+  alert(payload.notification.body);
+});
+
+function renderMedications(){
+  medListDiv.innerHTML='';
+  medications.forEach((med, idx)=>{
+    const div=document.createElement('div');
+    div.className='med';
+    div.innerHTML=`
+      <input id="medName_${idx}" value="${med.name}">
+      <input type="time" id="medTime_${idx}" value="${med.time}" step="60">
+      <button onclick="saveMedication(${idx})" class="save">บันทึก</button>
+      <button onclick="deleteMedication(${idx})" class="delete">ลบ</button>
+      <button onclick="markTaken('${med.name}', true)" class="taken">✅ กินยาแล้ว</button>
+      <button onclick="markTaken('${med.name}', false)" class="not-taken">❌ ไม่ได้กินยา</button>
+    `;
+    medListDiv.appendChild(div);
+  });
+  scheduleAllNotifications();
+}
+
+// ฟังก์ชันอื่นๆ: addMedication, saveMedication, deleteMedication, markTaken, loadHistory, saveMedicationsToFirebase, loadMedicationsFromFirebase, scheduleAllNotifications
+// --- โค้ดฟังก์ชันเต็มเหมือนตัวอย่างก่อนหน้า ---
+</script>
 </head>
 <body>
-  <h2>คำนวณขนาดยา TB และระบบเตือนอัตโนมัติ</h2>
-
-  <label>น้ำหนัก (kg):</label>
-  <input type="number" id="weight" placeholder="เช่น 60">
-
-  <label>อายุ (ปี):</label>
-  <input type="number" id="age" placeholder="เช่น 45">
-
-  <label>เพศ:</label>
-  <select id="sex">
-    <option value="male">ชาย</option>
-    <option value="female">หญิง</option>
-  </select>
-
-  <label>Serum Creatinine (mg/dL):</label>
-  <input type="number" id="scr" step="0.01" placeholder="เช่น 1.2">
-
-  <label>AST หรือ ALT (เท่าของค่าปกติ):</label>
-  <input type="number" id="liver" step="0.1" placeholder="เช่น 2.5">
-
-  <button onclick="calculateDose()">คำนวณและแนะนำ</button>
-  <button onclick="window.print()">🖨 พิมพ์รายงาน PDF</button>
-
-  <div class="result" id="result"></div>
-
-  <script src="script.js"></script>
+<div class="container">
+<h1>เครื่องเตือนกินยา</h1>
+<h2>ใส่ชื่อยาและเวลาที่ต้องการเตือน</h2>
+<input id="newMed" placeholder="ชื่อยาใหม่">
+<input type="time" id="newMedTime" value="19:00" step="60">
+<button onclick="addMedication()" class="save">เพิ่มยา</button>
+<div id="medList"></div>
+<h2>ประวัติการกินยา</h2>
+<table id="historyTable">
+<thead>
+<tr><th>วัน</th><th>ชื่อยา</th><th>สถานะ</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
 </body>
 </html>
