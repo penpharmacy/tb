@@ -1,0 +1,16 @@
+body { font-family: 'Kanit', sans-serif; background:#f4f4f9; padding:20px; }
+.container { max-width:720px; margin:auto; background:#fff; padding:20px; border-radius:12px; box-shadow:0 4px 18px rgba(0,0,0,.08); }
+h1,h2{ text-align:center; color:#222; }
+.input-group{ margin-bottom:12px; }
+input{ width:100%; padding:10px; margin-top:6px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box; }
+button{ padding:10px 14px; margin-top:10px; background:#2e7d32; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; }
+button:hover{ filter:brightness(.95); }
+ul{ list-style:none; padding-left:0; margin-top:10px; }
+li{ padding:10px; border-bottom:1px solid #eee; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.badge{ font-size:12px; padding:4px 8px; border-radius:999px; background:#eee; }
+.small{ color:#666; font-size:12px; }
+li .left{ display:flex; flex-direction:column; gap:2px; }
+.btns{ display:flex; gap:8px; }
+.btn-secondary{ background:#1565c0; }
+.btn-danger{ background:#d32f2f; }
+.btn-warning{ background:#f9a825; color:#222; }

@@ -1,0 +1,12 @@
+{
+  "name": "tbpph-functions",
+  "engines": {
+    "node": "20"
+  },
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^4.7.0"
+  }
+}
